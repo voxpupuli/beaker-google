@@ -27,6 +27,6 @@ VERSION_STRING =
 
 
 
-puts '0.0.1'
+puts BeakerGoogle::VERSION
 
 exit 0
