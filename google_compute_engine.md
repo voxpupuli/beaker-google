@@ -24,12 +24,12 @@ google_compute:ssh-rsaAAAABCCCCCCCCCCDDDDDeeeeeeeeFFFFFFFGGGGGGGGGGGGGGGGHHHHHHH
           - agent
           - database
         platform: debian-7-wheezy-xxx
-        hypervisor: google
+        hypervisor: google_compute
       centos-6-agent:
         roles:
           - agent
         platform: centos-6-xxx
-        hypervisor: google
+        hypervisor: google_compute
     CONFIG:
       nfs_server: none
       consoleport: 443
