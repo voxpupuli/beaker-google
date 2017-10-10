@@ -58,7 +58,7 @@ module Beaker
       @options[:gce_project] = ENV['BEAKER_gce_project'] if ENV['BEAKER_gce_project']
       @options[:gce_keyfile] = ENV['BEAKER_gce_keyfile'] if ENV['BEAKER_gce_keyfile']
 
-      unless File.exist?(@options[:gce_keyfile])
+      unless (@options[:gce_keyfile] && File.exist?(@options[:gce_keyfile]))
         @options[:gce_keyfile] = File.join(ENV['HOME'], '.beaker', 'gce', %(#{@options[:gce_project]}.p12))
       end
 
