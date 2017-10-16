@@ -1,4 +1,4 @@
 require 'beaker/hypervisor/google_compute'
 
-class Google < GoogleCompute
+class Beaker::Google < Beaker::GoogleCompute
 end
