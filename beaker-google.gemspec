@@ -36,7 +36,7 @@ Gem::Specification.new do |s|
 
   # Run time dependencies
   s.add_runtime_dependency 'stringify-hash', '~> 0.0.0'
-  s.add_runtime_dependency 'google-api-client', '~> 0.8.0'
+  s.add_runtime_dependency 'google-api-client', '~> 0.8'
 
 end
 
