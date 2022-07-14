@@ -24,10 +24,10 @@ As of Beaker 4.0, all hypervisor and DSL extension libraries have been removed a
 ~~~ruby
 # Gemfile
 gem 'beaker', '~>4.0'
-gem 'beaker-aws'
+gem 'beaker-google'
 # project.gemspec
 s.add_runtime_dependency 'beaker', '~>4.0'
-s.add_runtime_dependency 'beaker-aws'
+s.add_runtime_dependency 'beaker-google'
 ~~~
 
 In Beaker's next major version, the requirement for `beaker-google` will be
