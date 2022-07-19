@@ -110,8 +110,9 @@ module Beaker
         # If a {project} is not specified, default to the project provided in the
         # BEAKER_gce_project environment variable
         if host[:image]
-          # Get the GCE machine type for this host
-          machine_type = @gce_helper.get_machine_type(host['gce_machine_type'])
+          machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
+          # Get the GCE machine type object for this host
+          machine_type = @gce_helper.get_machine_type(machine_type_name)
 
           image_selector = host[:image]
           # Do we have a project name?
