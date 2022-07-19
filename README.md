@@ -4,9 +4,7 @@ Beaker library to use the Google hypervisor
 
 # How to use this wizardry
 
-This is a gem that allows you to use hosts with [google compute](google_compute_engine.md) hypervisor with [Beaker](https://github.com/puppetlabs/beaker).
-
-See the [documentation](docs/manual.md) for the full manual.
+This is a gem that allows you to use hosts with [google compute](google_compute_engine.md) hypervisor with [Beaker](https://github.com/voxpupuli/beaker).
 
 Beaker will automatically load the appropriate hypervisors for any given hosts file, so as long as your project dependencies are satisfied there's nothing else to do. No need to `require` this library in your tests.
 
