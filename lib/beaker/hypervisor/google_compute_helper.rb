@@ -46,7 +46,7 @@ class Beaker::GoogleComputeHelper
 
     @options[:gce_zone] = ENV.fetch('BEAKER_gce_zone', DEFAULT_ZONE_NAME)
     @options[:gce_network] = ENV.fetch('BEAKER_gce_network', DEFAULT_NETWORK_NAME)
-    @options[:gce_subnet] = ENV.fetch('BEAKER_gce_subnet', nil)
+    @options[:gce_subnetwork] = ENV.fetch('BEAKER_gce_subnetwork', nil)
 
     raise 'You must specify a gce_project for Google Compute Engine instances!' unless @options[:gce_project]
 
@@ -140,16 +140,16 @@ class Beaker::GoogleComputeHelper
   def default_subnetwork
     network_name = @options[:gce_network]
     if network_name == 'default'
-      @options[:gce_subnet] ||= @compute.get_subnetwork(@options[:gce_project], default_region, 'default')
-    elsif @options[:gce_subnet].nil?
+      @options[:gce_subnetwork] ||= @compute.get_subnetwork(@options[:gce_project], default_region, 'default')
+    elsif @options[:gce_subnetwork].nil?
       # No subnet set, get the first subnet in our current region for the network
       subnetwork = @compute.get_network(@options[:gce_project], network_name).subnetworks[0]
       m = %r{.*/subnetworks/(?<subnetwork_name>.*)\Z}.match subnetwork
       raise "Unable to find a subnetwork in provided network #{network_name}" if m.nil?
 
-      @options[:gce_subnet] = m['subnetwork_name']
+      @options[:gce_subnetwork] = m['subnetwork_name']
     end
-    @options[:gce_subnet]
+    @options[:gce_subnetwork]
   end
 
   ##
