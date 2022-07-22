@@ -140,7 +140,7 @@ class Beaker::GoogleComputeHelper
   def default_subnetwork
     network_name = @options[:gce_network]
     if network_name == 'default'
-      @options[:gce_subnetwork] ||= @compute.get_subnetwork(@options[:gce_project], default_region, 'default')
+      @options[:gce_subnetwork] ||= @compute.get_subnetwork(@options[:gce_project], default_region, 'default').name
     elsif @options[:gce_subnetwork].nil?
       # No subnet set, get the first subnet in our current region for the network
       subnetwork = @compute.get_network(@options[:gce_project], network_name).subnetworks[0]
