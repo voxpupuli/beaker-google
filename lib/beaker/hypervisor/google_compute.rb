@@ -126,8 +126,9 @@ module Beaker
             image_name = image_selector
           end
           img = @gce_helper.get_image(image_project, image_name)
+          raise "Unable to find image #{image_name} from project #{image_project}" if img.nil?
         elsif host[:family]
-          image_selector = host[:image]
+          image_selector = host[:family]
           # Do we have a project name?
           if %r{/}.match?(image_selector)
             image_project, family_name = image_selector.split('/')
@@ -136,8 +137,7 @@ module Beaker
             family_name = image_selector
           end
           img = @gce_helper.get_latest_image_from_family(image_project, family_name)
-          img.nil?
-          raise "Unable to find image in family #{family_name} from project #{image_project}"
+          raise "Unable to find image in family #{family_name} from project #{image_project}" if img.nil?
         else
           raise('You must specify either :image or :family')
         end
