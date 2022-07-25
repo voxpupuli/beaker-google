@@ -99,6 +99,13 @@ module Beaker
       @logger.debug("Created Google Compute firewall #{@firewall}")
 
       @hosts.each do |host|
+
+        machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
+        raise "Must provide a machine type name in 'gce_machine_type'." if machine_type_name.nil?
+        # Get the GCE machine type object for this host
+        machine_type = @gce_helper.get_machine_type(machine_type_name)
+        raise "Unable to find machine type named #{machine_type_name} in region #{@compute.default_zone}" if machine_type.nil?
+
         # Find the image to use to create the new VM.
         # Either `image` or `family` must be set in the configuration. Accepted formats
         # for the image and family:
@@ -110,10 +117,6 @@ module Beaker
         # If a {project} is not specified, default to the project provided in the
         # BEAKER_gce_project environment variable
         if host[:image]
-          machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
-          # Get the GCE machine type object for this host
-          machine_type = @gce_helper.get_machine_type(machine_type_name)
-
           image_selector = host[:image]
           # Do we have a project name?
           if %r{/}.match?(image_selector)
