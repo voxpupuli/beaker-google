@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  - pull_request
+
+env:
+  BUNDLE_WITHOUT: release
+
+jobs:
+  # rubocop is currently not included in Gemfile
+  # rubocop:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Install Ruby 3.1
+  #       uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: "3.1"
+  #         bundler-cache: true
+  #     - name: Run rubocop
+  #       run: bundle exec rake rubocop
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ruby: "2.7"
+          - ruby: "3.0"
+          - ruby: "3.1"
+            coverage: "yes"
+    env:
+      COVERAGE: ${{ matrix.coverage }}
+    name: Ruby ${{ matrix.ruby }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Verify gem builds
+        run: gem build *.gemspec
+      # Currently no tests are defined in this gem
+      # - name: Run spec tests
+      #   run: bundle exec rake
