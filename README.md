@@ -1,5 +1,13 @@
 # beaker-google
 
+[![License](https://img.shields.io/github/license/voxpupuli/beaker-google.svg)](https://github.com/voxpupuli/beaker-google/blob/master/LICENSE)
+[![Test](https://github.com/voxpupuli/beaker-google/actions/workflows/ci.yml/badge.svg)](https://github.com/voxpupuli/beaker-google/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/voxpupuli/beaker-google/branch/main/graph/badge.svg)](https://codecov.io/gh/voxpupuli/beaker-google)
+[![Release](https://github.com/voxpupuli/beaker-google/actions/workflows/release.yml/badge.svg)](https://github.com/voxpupuli/beaker-google/actions/workflows/release.yml)
+[![RubyGem Version](https://img.shields.io/gem/v/beaker-google.svg)](https://rubygems.org/gems/beaker-google)
+[![RubyGem Downloads](https://img.shields.io/gem/dt/beaker-google.svg)](https://rubygems.org/gems/beaker-google)
+[![Donated by Puppet Inc](https://img.shields.io/badge/donated%20by-Puppet%20Inc-fb7047.svg)](#transfer-notice)
+
 Beaker library to use the Google hypervisor
 
 # How to use this wizardry
