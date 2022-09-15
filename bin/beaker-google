@@ -4,7 +4,7 @@ require 'rubygems' unless defined?(Gem)
 require 'beaker-google'
 
 VERSION_STRING =
-"
+  "
                                  _ .--.
                                 ( `    )
         beaker-google         .-'      `--,
@@ -24,8 +24,6 @@ VERSION_STRING =
                      |\"\"|
                      '=='
 "
-
-
 
 puts BeakerGoogle::VERSION
 

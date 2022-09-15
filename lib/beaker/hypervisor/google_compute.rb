@@ -1,37 +1,52 @@
 require 'time'
 
 module Beaker
-
   # Beaker support for the Google Compute Engine.
   class GoogleCompute < Beaker::Hypervisor
-
     SLEEPWAIT = 5
 
     # Hours before an instance is considered a zombie
     ZOMBIE = 3
 
     # Do some reasonable sleuthing on the SSH public key for GCE
+
+    ##
+    # Try to find the private ssh key file
+    #
+    # @return [String] The file path for the private key file
+    #
+    # @raise [Error] if the private key can not be found
+    def find_google_ssh_private_key
+      private_keyfile = ENV.fetch('BEAKER_gce_ssh_public_key',
+        File.join(ENV.fetch('HOME', nil), '.ssh', 'google_compute_engine'))
+      private_keyfile = @options[:gce_ssh_private_key] if @options[:gce_ssh_private_key] && !File.exist?(private_keyfile)
+      raise("Could not find GCE Private SSH key at '#{keyfile}'") unless File.exist?(private_keyfile)
+      @options[:gce_ssh_private_key] = private_keyfile
+      private_keyfile
+    end
+
+    ##
+    # Try to find the public key file based on the location of the private key or provided data
+    #
+    # @return [String] The file path for the public key file
+    #
+    # @raise [Error] if the public key can not be found
     def find_google_ssh_public_key
-      keyfile = ENV.fetch('BEAKER_gce_ssh_public_key', File.join(ENV['HOME'], '.ssh', 'google_compute_engine.pub'))
-
-      if @options[:gce_ssh_public_key] && !File.exist?(keyfile)
-        keyfile = @options[:gce_ssh_public_key]
-      end
-
-      raise("Could not find GCE Public SSH Key at '#{keyfile}'") unless File.exist?(keyfile)
-
-      return keyfile
+      private_keyfile = find_google_ssh_private_key
+      public_keyfile = private_keyfile << '.pub'
+      public_keyfile = @options[:gce_ssh_public_key] if @options[:gce_ssh_public_key] && !File.exist?(public_keyfile)
+      raise("Could not find GCE Public SSH key at '#{keyfile}'") unless File.exist?(public_keyfile)
+      @options[:gce_ssh_public_key] = public_keyfile
+      public_keyfile
     end
 
-    # Create the array of metaData, each member being a hash with a :key and a
-    # :value.  Sets :department, :project and :jenkins_build_url.
-    def format_metadata
-      [ {:key => :department, :value => @options[:department]},
-        {:key => :project, :value => @options[:project]},
-        {:key => :jenkins_build_url, :value => @options[:jenkins_build_url]},
-        {:key => :sshKeys, :value => "google_compute:#{File.read(find_google_ssh_public_key).strip}" }
-      ].delete_if { |member| member[:value].nil? or member[:value].empty?}
+    # IP is the only way we can be sure to connect
+    # TODO: This isn't being called
+    # rubocop:disable Lint/UnusedMethodArgument
+    def connection_preference(host)
+      [:ip]
     end
+    # rubocop:enable Lint/UnusedMethodArgument
 
     # Create a new instance of the Google Compute Engine hypervisor object
     #
@@ -60,6 +75,7 @@ module Beaker
     def initialize(google_hosts, options)
       require 'beaker/hypervisor/google_compute_helper'
 
+      super
       @options = options
       @logger = options[:logger]
       @hosts = google_hosts
@@ -70,67 +86,127 @@ module Beaker
     # Create and configure virtual machines in the Google Compute Engine,
     # including their associated disks and firewall rules
     def provision
-      attempts = @options[:timeout].to_i / SLEEPWAIT
       start = Time.now
-
       test_group_identifier = "beaker-#{start.to_i}-"
 
-      # get machineType resource, used by all instances
-      machineType = @gce_helper.get_machineType(start, attempts)
-
       # set firewall to open pe ports
-      network = @gce_helper.get_network(start, attempts)
+      network = @gce_helper.get_network
+
       @firewall = test_group_identifier + generate_host_name
-      @gce_helper.create_firewall(@firewall, network, start, attempts)
+
+      @gce_helper.create_firewall(@firewall, network)
 
       @logger.debug("Created Google Compute firewall #{@firewall}")
 
-
       @hosts.each do |host|
-        if host[:image]
-          gplatform = host[:image]
-        elsif host[:platform]
-          gplatform = Platform.new(host[:platform])
-        else
-          raise('You must specify either :image or :platform, or both as necessary')
-        end
 
-        img = @gce_helper.get_latest_image(gplatform, start, attempts)
+        machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
+        raise "Must provide a machine type name in 'gce_machine_type'." if machine_type_name.nil?
+        # Get the GCE machine type object for this host
+        machine_type = @gce_helper.get_machine_type(machine_type_name)
+        raise "Unable to find machine type named #{machine_type_name} in region #{@compute.default_zone}" if machine_type.nil?
+
+        # Find the image to use to create the new VM.
+        # Either `image` or `family` must be set in the configuration. Accepted formats
+        # for the image and family:
+        #   - {project}/{image}
+        #   - {project}/{family}
+        #   - {image}
+        #   - {family}
+        #
+        # If a {project} is not specified, default to the project provided in the
+        # BEAKER_gce_project environment variable
+        if host[:image]
+          image_selector = host[:image]
+          # Do we have a project name?
+          if %r{/}.match?(image_selector)
+            image_project, image_name = image_selector.split('/')[0..1]
+          else
+            image_project = @gce_helper.options[:gce_project]
+            image_name = image_selector
+          end
+          img = @gce_helper.get_image(image_project, image_name)
+          raise "Unable to find image #{image_name} from project #{image_project}" if img.nil?
+        elsif host[:family]
+          image_selector = host[:family]
+          # Do we have a project name?
+          if %r{/}.match?(image_selector)
+            image_project, family_name = image_selector.split('/')
+          else
+            image_project = @gce_helper.options[:gce_project]
+            family_name = image_selector
+          end
+          img = @gce_helper.get_latest_image_from_family(image_project, family_name)
+          raise "Unable to find image in family #{family_name} from project #{image_project}" if img.nil?
+        else
+          raise('You must specify either :image or :family')
+        end
 
         unique_host_id = test_group_identifier + generate_host_name
 
-        host['diskname'] = unique_host_id
-        disk = @gce_helper.create_disk(host['diskname'], img, start, attempts)
-        @logger.debug("Created Google Compute disk for #{host.name}: #{host['diskname']}")
+        boot_size = host['volume_size'] || img.disk_size_gb
+
+        # The boot disk is created as part of the instance creation
+        # TODO: Allow creation of other disks
+        # disk = @gce_helper.create_disk(host["diskname"], img, size)
+        # @logger.debug("Created Google Compute disk for #{host.name}: #{host["diskname"]}")
 
         # create new host name
         host['vmhostname'] = unique_host_id
-        #add a new instance of the image
-        instance = @gce_helper.create_instance(host['vmhostname'], img, machineType, disk, start, attempts)
+
+        # add a new instance of the image
+        operation = @gce_helper.create_instance(host['vmhostname'], img, machine_type, boot_size)
+        unless operation.error.nil?
+          raise "Unable to create Google Compute Instance #{host.name}: [#{operation.error.errors[0].code}] #{operation.error.errors[0].message}"
+        end
         @logger.debug("Created Google Compute instance for #{host.name}: #{host['vmhostname']}")
+        instance = @gce_helper.get_instance(host['vmhostname'])
 
         # add metadata to instance, if there is any to set
-        mdata = format_metadata
-        unless mdata.empty?
-          @gce_helper.setMetadata_on_instance(host['vmhostname'], instance['metadata']['fingerprint'],
-                                              mdata,
-                                              start, attempts)
-          @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
+        # mdata = format_metadata
+        # TODO: Set a configuration option for this to allow disabeling oslogin
+        mdata = [
+          {
+            key: 'ssh-keys',
+            value: "google_compute:#{File.read(find_google_ssh_public_key).strip}"
+          },
+          # For now oslogin needs to be disabled as there's no way to log in as root and it would
+          # take too much work on beaker to add sudo support to everything
+          {
+            key: 'enable-oslogin',
+            value: 'FALSE'
+          },
+        ]
+        next if mdata.empty?
+        # Add the metadata to the host
+        @gce_helper.set_metadata_on_instance(host['vmhostname'], mdata)
+        @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
+
+        host['ip'] = instance.network_interfaces[0].access_configs[0].nat_ip
+
+        # Add the new host to the firewall
+        @gce_helper.add_firewall_tag(@firewall, host['vmhostname'])
+
+        if host['disable_root_ssh'] == true
+          @logger.info('Not enabling root ssh as disable_root_ssh is true')
+        else
+
+          # # configure ssh
+          default_user = host['user']
+
+          # TODO: Pull this out into a configuration option or something
+          host['user'] = 'google_compute'
+
+          # Set the ssh private key we need to use
+          host.options['ssh']['keys'] = [find_google_ssh_private_key]
+
+          copy_ssh_to_root(host, @options)
+          enable_root_login(host, @options)
+          host['user'] = default_user
+
+          # shut down connection, will reconnect on next exec
+          host.close
         end
-
-        # get ip for this host
-        host['ip'] = instance['networkInterfaces'][0]['accessConfigs'][0]['natIP']
-
-        # configure ssh
-        default_user = host['user']
-        host['user'] = 'google_compute'
-
-        copy_ssh_to_root(host, @options)
-        enable_root_login(host, @options)
-        host['user'] = default_user
-
-        # shut down connection, will reconnect on next exec
-        host.close
 
         @logger.debug("Instance ready: #{host['vmhostname']} for #{host.name}}")
       end
@@ -138,70 +214,13 @@ module Beaker
 
     # Shutdown and destroy virtual machines in the Google Compute Engine,
     # including their associated disks and firewall rules
-    def cleanup()
-      attempts = @options[:timeout].to_i / SLEEPWAIT
-      start = Time.now
-
-      @gce_helper.delete_firewall(@firewall, start, attempts)
+    def cleanup
+      @gce_helper.delete_firewall(@firewall)
 
       @hosts.each do |host|
-        @gce_helper.delete_instance(host['vmhostname'], start, attempts)
+        # TODO: Delete any other disks attached during the instance creation
+        @gce_helper.delete_instance(host['vmhostname'])
         @logger.debug("Deleted Google Compute instance #{host['vmhostname']} for #{host.name}")
-        @gce_helper.delete_disk(host['diskname'], start, attempts)
-        @logger.debug("Deleted Google Compute disk #{host['diskname']} for #{host.name}")
-      end
-
-    end
-
-    # Shutdown and destroy Google Compute instances (including their associated
-    # disks and firewall rules) that have been alive longer than ZOMBIE hours.
-    def kill_zombies(max_age = ZOMBIE)
-      now = start = Time.now
-      attempts = @options[:timeout].to_i / SLEEPWAIT
-
-      # get rid of old instances
-      instances = @gce_helper.list_instances(start, attempts)
-      if instances
-        instances.each do |instance|
-          created = Time.parse(instance['creationTimestamp'])
-          alive = (now - created )/60/60
-          if alive >= max_age
-            #kill it with fire!
-            @logger.debug("Deleting zombie instance #{instance['name']}")
-            @gce_helper.delete_instance( instance['name'], start, attempts )
-          end
-        end
-      else
-        @logger.debug("No zombie instances found")
-      end
-
-      # get rid of old disks
-      disks = @gce_helper.list_disks(start, attempts)
-      if disks
-        disks.each do |disk|
-          created = Time.parse(disk['creationTimestamp'])
-          alive = (now - created )/60/60
-          if alive >= max_age
-
-            # kill it with fire!
-            @logger.debug("Deleting zombie disk #{disk['name']}")
-            @gce_helper.delete_disk( disk['name'], start, attempts )
-          end
-        end
-      else
-        @logger.debug("No zombie disks found")
-      end
-
-      # get rid of non-default firewalls
-      firewalls = @gce_helper.list_firewalls( start, attempts)
-
-      if firewalls && !firewalls.empty?
-        firewalls.each do |firewall|
-          @logger.debug("Deleting non-default firewall #{firewall['name']}")
-          @gce_helper.delete_firewall( firewall['name'], start, attempts )
-        end
-      else
-        @logger.debug("No zombie firewalls found")
       end
     end
   end
