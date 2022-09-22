@@ -166,7 +166,7 @@ module Beaker
         if host['user'] == "root" || host['user'] == "Administrator" || host['user'].empty?
           host['user'] = 'google_compute'
         end
-        
+
         # add metadata to instance, if there is any to set
         # mdata = format_metadata
         # TODO: Set a configuration option for this to allow disabeling oslogin
@@ -182,10 +182,23 @@ module Beaker
             value: 'FALSE'
           },
         ]
+        
+        # Check for google's default windows images and turn on ssh if found
+        if image_project == "windows-cloud"
+          # Turn on SSH on GCP's default windows images
+          mdata << {
+            key: 'enable-windows-ssh',
+            value: 'TRUE',
+          }
+          mdata << {
+            key: 'sysprep-specialize-script-cmd',
+            value: 'googet -noconfirm=true update && googet -noconfirm=true install google-compute-engine-ssh',
+          }
+        end
         unless mdata.empty?
-        # Add the metadata to the host
-        @gce_helper.set_metadata_on_instance(host['vmhostname'], mdata)
-        @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
+          # Add the metadata to the host
+          @gce_helper.set_metadata_on_instance(host['vmhostname'], mdata)
+          @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
         end
 
         host['ip'] = instance.network_interfaces[0].access_configs[0].nat_ip
