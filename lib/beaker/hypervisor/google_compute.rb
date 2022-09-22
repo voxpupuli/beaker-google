@@ -177,10 +177,11 @@ module Beaker
             value: 'FALSE'
           },
         ]
-        next if mdata.empty?
+        unless mdata.empty?
         # Add the metadata to the host
         @gce_helper.set_metadata_on_instance(host['vmhostname'], mdata)
         @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
+        end
 
         host['ip'] = instance.network_interfaces[0].access_configs[0].nat_ip
 
