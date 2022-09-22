@@ -162,13 +162,18 @@ module Beaker
         @logger.debug("Created Google Compute instance for #{host.name}: #{host['vmhostname']}")
         instance = @gce_helper.get_instance(host['vmhostname'])
 
+        # Make sure we have a non root/Adminsitor user to log in as
+        if host['user'] == "root" || host['user'] == "Administrator" || host['user'].empty?
+          host['user'] = 'google_compute'
+        end
+        
         # add metadata to instance, if there is any to set
         # mdata = format_metadata
         # TODO: Set a configuration option for this to allow disabeling oslogin
         mdata = [
           {
             key: 'ssh-keys',
-            value: "google_compute:#{File.read(find_google_ssh_public_key).strip}"
+            value: "#{host['user']}:#{File.read(find_google_ssh_public_key).strip}"
           },
           # For now oslogin needs to be disabled as there's no way to log in as root and it would
           # take too much work on beaker to add sudo support to everything
@@ -191,19 +196,11 @@ module Beaker
         if host['disable_root_ssh'] == true
           @logger.info('Not enabling root ssh as disable_root_ssh is true')
         else
-
-          # # configure ssh
-          default_user = host['user']
-
-          # TODO: Pull this out into a configuration option or something
-          host['user'] = 'google_compute'
-
           # Set the ssh private key we need to use
           host.options['ssh']['keys'] = [find_google_ssh_private_key]
 
           copy_ssh_to_root(host, @options)
           enable_root_login(host, @options)
-          host['user'] = default_user
 
           # shut down connection, will reconnect on next exec
           host.close
