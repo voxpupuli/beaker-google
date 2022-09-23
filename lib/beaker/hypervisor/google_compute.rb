@@ -162,13 +162,20 @@ module Beaker
         @logger.debug("Created Google Compute instance for #{host.name}: #{host['vmhostname']}")
         instance = @gce_helper.get_instance(host['vmhostname'])
 
+        # Make sure we have a non root/Adminsitor user to log in as
+        if host['user'] == "root" || host['user'] == "Administrator" || host['user'].empty?
+          initial_user = 'google_compute'
+        else
+          initial_user = host['user']
+        end
+
         # add metadata to instance, if there is any to set
         # mdata = format_metadata
         # TODO: Set a configuration option for this to allow disabeling oslogin
         mdata = [
           {
             key: 'ssh-keys',
-            value: "google_compute:#{File.read(find_google_ssh_public_key).strip}"
+            value: "#{initial_user}:#{File.read(find_google_ssh_public_key).strip}"
           },
           # For now oslogin needs to be disabled as there's no way to log in as root and it would
           # take too much work on beaker to add sudo support to everything
@@ -177,10 +184,24 @@ module Beaker
             value: 'FALSE'
           },
         ]
-        next if mdata.empty?
-        # Add the metadata to the host
-        @gce_helper.set_metadata_on_instance(host['vmhostname'], mdata)
-        @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
+        
+        # Check for google's default windows images and turn on ssh if found
+        if image_project == "windows-cloud"
+          # Turn on SSH on GCP's default windows images
+          mdata << {
+            key: 'enable-windows-ssh',
+            value: 'TRUE',
+          }
+          mdata << {
+            key: 'sysprep-specialize-script-cmd',
+            value: 'googet -noconfirm=true update && googet -noconfirm=true install google-compute-engine-ssh',
+          }
+        end
+        unless mdata.empty?
+          # Add the metadata to the host
+          @gce_helper.set_metadata_on_instance(host['vmhostname'], mdata)
+          @logger.debug("Added tags to Google Compute instance #{host.name}: #{host['vmhostname']}")
+        end
 
         host['ip'] = instance.network_interfaces[0].access_configs[0].nat_ip
 
@@ -190,20 +211,14 @@ module Beaker
         if host['disable_root_ssh'] == true
           @logger.info('Not enabling root ssh as disable_root_ssh is true')
         else
-
-          # # configure ssh
-          default_user = host['user']
-
-          # TODO: Pull this out into a configuration option or something
-          host['user'] = 'google_compute'
-
+          real_user = host['user']
+          host['user'] = initial_user
           # Set the ssh private key we need to use
           host.options['ssh']['keys'] = [find_google_ssh_private_key]
 
           copy_ssh_to_root(host, @options)
           enable_root_login(host, @options)
-          host['user'] = default_user
-
+          host['user'] = real_user
           # shut down connection, will reconnect on next exec
           host.close
         end
