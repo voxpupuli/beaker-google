@@ -186,7 +186,7 @@ module Beaker
         ]
         
         # Check for google's default windows images and turn on ssh if found
-        if image_project == "windows-cloud"
+        if image_project == "windows-cloud" || image_project == "windows-sql-cloud"
           # Turn on SSH on GCP's default windows images
           mdata << {
             key: 'enable-windows-ssh',
