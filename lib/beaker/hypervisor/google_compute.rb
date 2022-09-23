@@ -164,9 +164,9 @@ module Beaker
 
         # Make sure we have a non root/Adminsitor user to log in as
         if host['user'] == "root" || host['user'] == "Administrator" || host['user'].empty?
-          intial_user = 'google_compute'
+          initial_user = 'google_compute'
         else
-          intial_user = host['user']
+          initial_user = host['user']
         end
 
         # add metadata to instance, if there is any to set
@@ -175,7 +175,7 @@ module Beaker
         mdata = [
           {
             key: 'ssh-keys',
-            value: "#{intial_user}:#{File.read(find_google_ssh_public_key).strip}"
+            value: "#{initial_user}:#{File.read(find_google_ssh_public_key).strip}"
           },
           # For now oslogin needs to be disabled as there's no way to log in as root and it would
           # take too much work on beaker to add sudo support to everything
@@ -212,7 +212,7 @@ module Beaker
           @logger.info('Not enabling root ssh as disable_root_ssh is true')
         else
           real_user = host['user']
-          host['user'] = intial_user
+          host['user'] = initial_user
           # Set the ssh private key we need to use
           host.options['ssh']['keys'] = [find_google_ssh_private_key]
 
