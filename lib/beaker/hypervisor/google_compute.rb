@@ -196,6 +196,11 @@ module Beaker
             key: 'sysprep-specialize-script-cmd',
             value: 'googet -noconfirm=true update && googet -noconfirm=true install google-compute-engine-ssh',
           }
+          # Some versions of windows don't seem to add the OpenSSH directory to the path which prevents scp from working
+          mdata << {
+            key: 'sysprep-specialize-script-ps1',
+            value: '[Environment]::SetEnvironmentVariable( "PATH", "$ENV:PATH;C:\Program Files\OpenSSH", [EnvironmentVariableTarget]::Machine )',
+          }
         end
         unless mdata.empty?
           # Add the metadata to the host
