@@ -194,7 +194,7 @@ module Beaker
           }
           mdata << {
             key: 'sysprep-specialize-script-cmd',
-            value: 'googet -noconfirm=true update && googet -noconfirm=true install google-compute-engine-ssh',
+            value: 'start /wait googet -noconfirm=true update && start /wait googet -noconfirm=true install google-compute-engine-ssh',
           }
           # Some versions of windows don't seem to add the OpenSSH directory to the path which prevents scp from working
           mdata << {
