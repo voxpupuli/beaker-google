@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0](https://github.com/voxpupuli/beaker-google/tree/1.0.0) (2022-10-31)
+
+[Full Changelog](https://github.com/voxpupuli/beaker-google/compare/0.5.0...1.0.0)
+
+**Fixed bugs:**
+
+- exec sysprep commands in child processes [\#31](https://github.com/voxpupuli/beaker-google/pull/31) ([AndyAdrian-OP](https://github.com/AndyAdrian-OP))
+
 ## [0.5.0](https://github.com/voxpupuli/beaker-google/tree/0.5.0) (2022-10-04)
 
 [Full Changelog](https://github.com/voxpupuli/beaker-google/compare/0.4.0...0.5.0)
