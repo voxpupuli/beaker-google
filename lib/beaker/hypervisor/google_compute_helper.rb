@@ -398,6 +398,8 @@ class Beaker::GoogleComputeHelper
 
     # use custom hostname if specified
     if hostname && ENV.fetch('BEAKER_set_gce_hostname')
+      # The google api requires a valid FQDN for the custom hostname
+      # This regex validates the hostname is formatted correctly (minimum of <host>.<domain>.<tld>)
       if %r{^(?=.{4,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.){2,}[a-zA-Z]{2,}$}.match?(hostname)
         valid_hostname = hostname
       else
