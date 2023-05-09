@@ -396,28 +396,23 @@ class Beaker::GoogleComputeHelper
       ],
     )
 
+    instance_opts = {
+      'machine_type' => machine_type.self_link,
+      'name' => name,
+      'disks' => [disk_params],
+      'network_interfaces' => [network_interface],
+      'tags' => tags,
+    }
+
     # use custom hostname if specified
     if hostname && ENV.fetch('BEAKER_set_gce_hostname', false)
       # The google api requires an FQDN for the custom hostname
       hostname.include?('.') ? valid_hostname = hostname : valid_hostname = hostname + '.beaker.test' 
-
-      new_instance = ::Google::Apis::ComputeV1::Instance.new(
-        machine_type: machine_type.self_link,
-        name: name,
-        disks: [disk_params],
-        network_interfaces: [network_interface],
-        tags: tags,
-        hostname: valid_hostname,
-      )
-    else
-      new_instance = ::Google::Apis::ComputeV1::Instance.new(
-        machine_type: machine_type.self_link,
-        name: name,
-        disks: [disk_params],
-        network_interfaces: [network_interface],
-        tags: tags,
-      )
+      instance_opts['hostname'] = valid_hostname
     end
+    
+    new_instance = ::Google::Apis::ComputeV1::Instance.new(instance_opts)
+
     operation = @compute.insert_instance(@options[:gce_project], @options[:gce_zone], new_instance)
     @compute.wait_zone_operation(@options[:gce_project], @options[:gce_zone], operation.name)
   end
