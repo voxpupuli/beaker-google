@@ -79,7 +79,8 @@ module Beaker
       @options = options
       @logger = options[:logger]
       @hosts = google_hosts
-      @firewall = ''
+      @external_firewall_name = ''
+      @internal_firewall_name = ''
       @gce_helper = GoogleComputeHelper.new(options)
     end
 
@@ -87,19 +88,25 @@ module Beaker
     # including their associated disks and firewall rules
     def provision
       start = Time.now
-      test_group_identifier = "beaker-#{start.to_i}-"
+      test_group_identifier = "beaker-#{start.to_i}"
 
       # set firewall to open pe ports
       network = @gce_helper.get_network
 
-      @firewall = test_group_identifier + generate_host_name
+      @external_firewall_name = test_group_identifier + '-external'
 
-      @gce_helper.create_firewall(@firewall, network)
+      # Always allow ssh from anywhere as it's needed for Beaker to run
+      @gce_helper.create_firewall(@external_firewall_name, network, allow: @options[:gce_ports] + ['22/tcp'], source_ranges: ['0.0.0.0/0'], target_tags: [test_group_identifier])
+    
+      @logger.debug("Created External Google Compute firewall #{@external_firewall_name}")
 
-      @logger.debug("Created Google Compute firewall #{@firewall}")
-
+      # Create a firewall that opens everything between all the hosts in this test group
+      @internal_firewall_name = test_group_identifier + '-internal'
+      internal_ports = ['1-65535/tcp', '1-65535/udp', '-1/icmp']
+      @gce_helper.create_firewall(@internal_firewall_name, network, allow: internal_ports, source_tags: [test_group_identifier], target_tags: [test_group_identifier])
+      @logger.debug("Created test group Google Compute firewall #{@internal_firewall_name}")
+      
       @hosts.each do |host|
-
         machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
         raise "Must provide a machine type name in 'gce_machine_type'." if machine_type_name.nil?
         # Get the GCE machine type object for this host
@@ -142,7 +149,7 @@ module Beaker
           raise('You must specify either :image or :family')
         end
 
-        unique_host_id = test_group_identifier + generate_host_name
+        unique_host_id = test_group_identifier + '-' + generate_host_name
 
         boot_size = host['volume_size'] || img.disk_size_gb
 
@@ -161,6 +168,9 @@ module Beaker
         end
         @logger.debug("Created Google Compute instance for #{host.name}: #{host['vmhostname']}")
         instance = @gce_helper.get_instance(host['vmhostname'])
+
+        @gce_helper.add_instance_tag(host['vmhostname'], test_group_identifier)
+        @logger.debug("Added network tag #{test_group_identifier} to instance")
 
         # Make sure we have a non root/Adminsitor user to log in as
         if host['user'] == "root" || host['user'] == "Administrator" || host['user'].empty?
@@ -210,9 +220,6 @@ module Beaker
 
         host['ip'] = instance.network_interfaces[0].access_configs[0].nat_ip
 
-        # Add the new host to the firewall
-        @gce_helper.add_firewall_tag(@firewall, host['vmhostname'])
-
         if host['disable_root_ssh'] == true
           @logger.info('Not enabling root ssh as disable_root_ssh is true')
         else
@@ -235,7 +242,8 @@ module Beaker
     # Shutdown and destroy virtual machines in the Google Compute Engine,
     # including their associated disks and firewall rules
     def cleanup
-      @gce_helper.delete_firewall(@firewall)
+      @gce_helper.delete_firewall(@external_firewall_name)
+      @gce_helper.delete_firewall(@internal_firewall_name)
 
       @hosts.each do |host|
         # TODO: Delete any other disks attached during the instance creation

@@ -10,7 +10,7 @@
 
 Beaker library to use the Google hypervisor
 
-# How to use this wizardry
+# How to use this module
 
 This is a gem that allows you to use hosts with [Google Compute](https://cloud.google.com/compute) hypervisor with [Beaker](https://github.com/voxpupuli/beaker).
 
@@ -46,6 +46,7 @@ The behavior of this library can be configured using either the beaker host conf
 | gce_zone             | true             |                                  | The zone to place compute instances in. The region is calculated from the zone name.                                                                                                                                                                                                          |
 | gce_network          | false            | Default                          | The name of the network to attach to instances. If the project uses the default network, this and `gce_subnetwork` can be left empty.                                                                                                                                                         |
 | gce_subnetwork       | false            | Default                          | The name of the subnetwork to attach to the instances network interface. If the Default network is not used, this must be supplied.                                                                                                                                                           |
+| gce_ports            | false            | `[ ]`                            | A comma separated list of ports to add to the external firewall. Each port is specified in the format `number/protocol` where protocol is one of `tcp`, `udp`, `icmp`, `esp`, `ah`, `ipip`, or `sctp`. **NOTE:** Port `22/tcp` is required for beaker to function and is automatically added to the firewall. |
 | gce_ssh_private_key  | false            | $HOME/.ssh/google_compute_engine | The file path of the private key to use to connect to instances. If using the key created by the gcloud tool, this can be left blank.                                                                                                                                                         |
 | gce_ssh_public_key   | false            | <gce_ssh_private_key>.pub        | The file path of the public key to upload to the instance. If left blank, attempt to use the file at `gce_ssh_private_key` with a `.pub` extension.                                                                                                                                           |
 | gce_machine_type     | false            | e2-standard-4                    | The machine type to use for the instance. If the `BEAKER_gce_machine_type` environment variable is set, it will be used for all hosts.                                                                                                                                                        |
@@ -55,14 +56,22 @@ The behavior of this library can be configured using either the beaker host conf
 
 All the variables in the list can be set in the Beaker host configuration file, or the ones starting with `gce_` can be overridden by environment variables in the form `BEAKER_gce_...`. i.e. To override the `gce_machine_type` setting in the environment, set `BEAKER_gce_machine_type`.
 
+## Networking
+
+Each run of beaker creates a pair of firewalls to protect the hosts, and internal host-to-host firewall, and an external firewall between the hosts and the internet.
+
+The internal firewall allows all communication between hosts in the node set, while keeping them isolated from any other Beaker jobs that may be running in the same environment. This firewall is attached to all hosts in the test set, and allows all `tcp`, `udp`, and `icmp` traffic.
+
+The external firewall allows outside communication from the internet into the hosts in the test. Due to constrains of the Beaker system, the firewall accepts any source IP (`0.0.0.0/0`) and the SSH port (`22/tcp`) is always allowed. Other ports may be added by using the `gce_ports` configuration option or the `BEAKER_gce_ports` environment variable as a comma separated list of `port/proto` values where `port` is the port number or range, and proto is one of `tcp`, `udp`, `icmp`, `esp`, `ah`, `ipip`, or `sctp`. The port number is only used for `tcp`, `udp`, and `sctp` protocols. Any value, such as `-1` can be used for the other protocols.
+
 # Cleanup
 
 In cases where the beaker process is killed before finishing, it may leave resources in GCP. These resources will need to be manually deleted.
 
 | Resource Type | Name Pattern        | Count                                       |
 | ------------- | ------------------- | ------------------------------------------- |
-| Firewall      | `beaker-<number>-*` | 1                                           |
-| Instance      | `beaker-*`          | One or more depending on test configuration |
+| Firewall      | `beaker-<number>-*` | 2                                           |
+| Instance      | `beaker-<number>-*` | One or more depending on test configuration |
 
 # Contributing
 
