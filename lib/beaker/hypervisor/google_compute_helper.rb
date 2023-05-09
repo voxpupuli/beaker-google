@@ -399,7 +399,7 @@ class Beaker::GoogleComputeHelper
     # use custom hostname if specified
     if hostname && ENV.fetch('BEAKER_set_gce_hostname', false)
       # The google api requires an FQDN for the custom hostname
-      hostname.include? '.' ? valid_hostname = hostname : valid_hostname = hostname + '.beaker.test' 
+      hostname.include?('.') ? valid_hostname = hostname : valid_hostname = hostname + '.beaker.test' 
 
       new_instance = ::Google::Apis::ComputeV1::Instance.new(
         machine_type: machine_type.self_link,
