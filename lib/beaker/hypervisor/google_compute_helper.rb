@@ -397,7 +397,7 @@ class Beaker::GoogleComputeHelper
     )
 
     # use custom hostname if specified
-    if hostname && ENV.fetch('BEAKER_set_gce_hostname')
+    if hostname && ENV.fetch('BEAKER_set_gce_hostname', false)
       # The google api requires an FQDN for the custom hostname
       hostname.include? '.' ? valid_hostname = hostname : valid_hostname = hostname + '.beaker.test' 
 
