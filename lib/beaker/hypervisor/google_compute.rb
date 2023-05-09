@@ -98,7 +98,7 @@ module Beaker
 
       @logger.debug("Created Google Compute firewall #{@firewall}")
 
-      @hosts.each do |host|
+      @hosts.each do |hostname, host|
 
         machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
         raise "Must provide a machine type name in 'gce_machine_type'." if machine_type_name.nil?
@@ -155,7 +155,7 @@ module Beaker
         host['vmhostname'] = unique_host_id
 
         # add a new instance of the image
-        operation = @gce_helper.create_instance(host['vmhostname'], img, machine_type, boot_size)
+        operation = @gce_helper.create_instance(host['vmhostname'], img, machine_type, boot_size, hostname)
         unless operation.error.nil?
           raise "Unable to create Google Compute Instance #{host.name}: [#{operation.error.errors[0].code}] #{operation.error.errors[0].message}"
         end

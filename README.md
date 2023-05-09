@@ -55,6 +55,8 @@ The behavior of this library can be configured using either the beaker host conf
 
 All the variables in the list can be set in the Beaker host configuration file, or the ones starting with `gce_` can be overridden by environment variables in the form `BEAKER_gce_...`. i.e. To override the `gce_machine_type` setting in the environment, set `BEAKER_gce_machine_type`.
 
+VM Instances created during this process will by default use the automatically-generated instance name as the hostname in the VM OS.  Set the `BEAKER_set_gce_hostname` environment variable to `1` to override this behavior and configure the VM OS with the name defined in the nodeset as the hostname.
+
 # Cleanup
 
 In cases where the beaker process is killed before finishing, it may leave resources in GCP. These resources will need to be manually deleted.
