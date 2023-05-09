@@ -322,12 +322,9 @@ class Beaker::GoogleComputeHelper
   # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
   # @raise [Google::Apis::AuthorizationError] Authorization is required
   def create_firewall(name, network, allow: [], deny: [], source_ranges: [], source_tags: [], target_ranges: [], target_tags: [])
-    # require 'pry-byebug'
-    # binding.pry
     allowed = []
     allow.each do |port|
       parts = port.split('/', 2)
-      # allowed << ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: parts[1], ports: [parts[0]])
       if parts[1] == 'tcp' || parts[1] == 'udp' || parts[1] == 'sctp' then
         allowed << ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: parts[1], ports: [parts[0]])
       else
