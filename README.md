@@ -64,6 +64,8 @@ The internal firewall allows all communication between hosts in the node set, wh
 
 The external firewall allows outside communication from the internet into the hosts in the test. Due to constrains of the Beaker system, the firewall accepts any source IP (`0.0.0.0/0`) and the SSH port (`22/tcp`) is always allowed. Other ports may be added by using the `gce_ports` configuration option or the `BEAKER_gce_ports` environment variable as a comma separated list of `port/proto` values where `port` is the port number or range, and proto is one of `tcp`, `udp`, `icmp`, `esp`, `ah`, `ipip`, or `sctp`. The port number is only used for `tcp`, `udp`, and `sctp` protocols. Any value, such as `-1` can be used for the other protocols.
 
+VM Instances created during this process will by default use the automatically-generated instance name as the hostname in the VM OS.  Set the `BEAKER_set_gce_hostname` environment variable to `1` to override this behavior and configure the VM OS with the name defined in the nodeset as the hostname.
+
 # Cleanup
 
 In cases where the beaker process is killed before finishing, it may leave resources in GCP. These resources will need to be manually deleted.

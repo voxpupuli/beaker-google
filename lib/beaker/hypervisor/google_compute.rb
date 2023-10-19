@@ -162,7 +162,7 @@ module Beaker
         host['vmhostname'] = unique_host_id
 
         # add a new instance of the image
-        operation = @gce_helper.create_instance(host['vmhostname'], img, machine_type, boot_size)
+        operation = @gce_helper.create_instance(host['vmhostname'], img, machine_type, boot_size, host.name)
         unless operation.error.nil?
           raise "Unable to create Google Compute Instance #{host.name}: [#{operation.error.errors[0].code}] #{operation.error.errors[0].message}"
         end
