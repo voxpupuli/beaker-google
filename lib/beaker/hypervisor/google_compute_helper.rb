@@ -363,12 +363,14 @@ class Beaker::GoogleComputeHelper
   # @param [Integer] disk_size The size of the boot disk for the new instance. Must be equal to or
   #   greater than the image disk's size
   #
+  # @param [String] hostname The custom hostname to set in the OS of the instance
+  #
   # @return [Google::Apis::ComputeV1::Operation]
   #
   # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
   # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
   # @raise [Google::Apis::AuthorizationError] Authorization is required
-  def create_instance(name, img, machine_type, disk_size)
+  def create_instance(name, img, machine_type, disk_size, hostname)
     initialize_params = ::Google::Apis::ComputeV1::AttachedDiskInitializeParams.new(
       disk_size_gb: disk_size,
       source_image: img.self_link,
@@ -393,13 +395,24 @@ class Beaker::GoogleComputeHelper
         ),
       ],
     )
-    new_instance = ::Google::Apis::ComputeV1::Instance.new(
-      machine_type: machine_type.self_link,
-      name: name,
-      disks: [disk_params],
-      network_interfaces: [network_interface],
-      tags: tags,
-    )
+
+    instance_opts = {
+      :machine_type => machine_type.self_link,
+      :name => name,
+      :disks => [disk_params],
+      :network_interfaces => [network_interface],
+      :tags => tags,
+    }
+
+    # use custom hostname if specified
+    if hostname && ENV.fetch('BEAKER_set_gce_hostname', false)
+      # The google api requires an FQDN for the custom hostname
+      hostname.include?('.') ? valid_hostname = hostname : valid_hostname = hostname + '.beaker.test' 
+      instance_opts[:hostname] = valid_hostname
+    end
+    
+    new_instance = ::Google::Apis::ComputeV1::Instance.new(instance_opts)
+
     operation = @compute.insert_instance(@options[:gce_project], @options[:gce_zone], new_instance)
     @compute.wait_zone_operation(@options[:gce_project], @options[:gce_zone], operation.name)
   end
