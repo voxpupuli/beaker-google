@@ -24,6 +24,8 @@ class Beaker::GoogleComputeHelper
   DEFAULT_MACHINE_TYPE = 'e2-standard-4'
   DEFAULT_NETWORK_NAME = 'default'
 
+  VALID_PROTOS = ['tcp', 'udp', 'icmp', 'esp', 'ah', 'ipip', 'sctp']
+
   GCP_AUTH_SCOPE = [
     Google::Apis::ComputeV1::AUTH_COMPUTE,
     Google::Apis::OsloginV1::AUTH_CLOUD_PLATFORM_READ_ONLY,
@@ -48,8 +50,18 @@ class Beaker::GoogleComputeHelper
     @options[:gce_network] = ENV.fetch('BEAKER_gce_network', DEFAULT_NETWORK_NAME)
     @options[:gce_subnetwork] = ENV.fetch('BEAKER_gce_subnetwork', nil)
 
+    @configure_ports = ENV.fetch('BEAKER_gce_ports', "").strip
+    # Split the ports based on commas, removing any empty values
+    @options[:gce_ports] = @configure_ports.split(/\s*?,\s*/).reject { |s| s.empty? }
+
     raise 'You must specify a gce_project for Google Compute Engine instances!' unless @options[:gce_project]
 
+    @options[:gce_ports].each do |port|
+      parts = port.split('/', 2)
+      raise "Invalid format for port #{port}. Should be 'port/proto'" unless parts.length == 2
+      proto = parts[1]
+      raise "Invalid value '#{proto}' for protocol in '#{port}'. Must be one of '#{VALID_PROTOS.join("', '")}'" unless VALID_PROTOS.include? proto
+    end
     authorizer = authenticate
     @compute = ::Google::Apis::ComputeV1::ComputeService.new
     @compute.authorization = authorizer
@@ -288,23 +300,115 @@ class Beaker::GoogleComputeHelper
   # @param [::Google::Apis::ComputeV1::Network] network The Google Compute networkin which to create
   # the firewall
   #
+  # @param [Array<String>] allow List of ports to allow through the firewall. One of 'allow' or 'deny' must be specified, but not both.
+  #
+  # @param [Array<String>] deny List of ports to deny through the firewall. One of 'allow' or 'deny' must be specified, but not both.
+  #
+  # @param [Array<String>] source_ranges List of ranges in CIDR format to accept through the firewall. If neither 'source_ranges' 
+  # or 'source_tags' is specified, GCP adds a default 'source_range' of '0.0.0.0/0' (allow all)
+  #
+  # @param [Array<String>] source_tags List of network tags to accept through the firewall. If neither 'source_ranges' 
+  # or 'source_tags' is specified, GCP adds a default 'source_range' of '0.0.0.0/0' (allow all)
+  #
+  # @param [Array<String>] target_ranges List of ranges in CIDR format to apply this firewall. If neither 'target_ranges' 
+  # or 'target_tags' is specified, the firewall applies to all hosts in the VPC
+  #
+  # @param [Array<String>] target_tags List of network tags to apply this firewall. If neither 'target_ranges' 
+  # or 'target_tags' is specified, the firewall applies to all hosts in the VPC
+  #
   # @return [Google::Apis::ComputeV1::Operation]
   #
   # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
   # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
   # @raise [Google::Apis::AuthorizationError] Authorization is required
-  def create_firewall(name, network)
+  def create_firewall(name, network, allow: [], deny: [], source_ranges: [], source_tags: [], target_ranges: [], target_tags: [])
+    allowed = []
+    allow.each do |port|
+      parts = port.split('/', 2)
+      if parts[1] == 'tcp' || parts[1] == 'udp' || parts[1] == 'sctp' then
+        allowed << ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: parts[1], ports: [parts[0]])
+      else
+        allowed << ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: parts[1])
+      end
+    end
+    denied = []
+    deny.each do |port|
+      parts = port.split('/', 2)
+      if parts[1] == 'tcp' || parts[1] == 'udp' || parts[1] == 'sctp' then
+        denied << ::Google::Apis::ComputeV1::Firewall::Denied.new(ip_protocol: parts[1], ports: [parts[0]])
+      else
+        denied << ::Google::Apis::ComputeV1::Firewall::Denied.new(ip_protocol: parts[1])
+      end
+    end
+
     firewall_object = ::Google::Apis::ComputeV1::Firewall.new(
       name: name,
-      allowed: [
-        ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: 'tcp',
-                                                         ports: ['443', '8140', '61613', '8080', '8081', '22']),
-      ],
+      direction: 'INGRESS',
       network: network.self_link,
-      # TODO: Is there a better way to do this?
-      sourceRanges: ['0.0.0.0/0'], # Allow from anywhere
+      allowed: allowed,
+      denied: denied,
+      source_ranges: source_ranges,
+      source_tags: source_tags,
+      target_ranges: target_ranges,
+      target_tags: target_tags,
     )
     operation = @compute.insert_firewall(@options[:gce_project], firewall_object)
+    @compute.wait_global_operation(@options[:gce_project], operation.name)
+  end
+
+  ##
+  # Get the named firewall
+  #
+  # @param [String] name The name of the firewall
+  #
+  # @return [Google::Apis::ComputeV1::Firewall]
+  #
+  # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
+  # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
+  # @raise [Google::Apis::AuthorizationError] Authorization is required
+  def get_firewall(name)
+    firewall = @compute.get_firewall(@options[:gce_project], name)
+  end
+
+  ##
+  # Add a source range to the firewall.
+  #
+  # @param [String] name The name of the firewall
+  #
+  # @param [String] range The IP range in CIDR format to add to the firewall
+  #
+  # @return [Google::Apis::ComputeV1::Operation]
+  #
+  # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
+  # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
+  # @raise [Google::Apis::AuthorizationError] Authorization is required
+  def add_firewall_source_range(name, range)
+    firewall = get_firewall(name)
+    firewall.source_ranges = [] if firewall.source_ranges.nil?
+    firewall.source_ranges << range
+    operation = @compute.patch_firewall(@options[:gce_project], name, firewall)
+    @compute.wait_global_operation(@options[:gce_project], operation.name)
+  end
+
+  ##
+  # Add an allowed port to the firewall
+  #
+  # @param [String] name The name of the firewall
+  #
+  # @param [String] port The port number to open on the firewall
+  #
+  # @param [String] proto The protocol of the port. This should be 'tcp' or 'udp'
+  #
+  # @return [Google::Apis::ComputeV1::Operation]
+  #
+  # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
+  # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
+  # @raise [Google::Apis::AuthorizationError] Authorization is required
+  def add_firewall_port(name, port, proto)
+    firewall = get_firewall(name)
+    firewall.allowed = [] if firewall.allowed.nil?
+    firewall.allowed << ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: proto, ports: [port])
+    operation = @compute.patch_firewall(@options[:gce_project], name, firewall)
     @compute.wait_global_operation(@options[:gce_project], operation.name)
   end
 
@@ -313,17 +417,37 @@ class Beaker::GoogleComputeHelper
   #
   # @param [String] the name of the firewall to update
   #
-  # @ param [String] tag The tag to add to the firewall
+  # @param [String] tag The target tag to add to the firewall
   #
   # @return [Google::Apis::ComputeV1::Operation]
   #
   # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
   # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
   # @raise [Google::Apis::AuthorizationError] Authorization is required
-  def add_firewall_tag(name, tag)
+  def add_firewall_target_tag(name, tag)
     firewall = @compute.get_firewall(@options[:gce_project], name)
     firewall.target_tags = [] if firewall.target_tags.nil?
     firewall.target_tags << tag
+    operation = @compute.patch_firewall(@options[:gce_project], name, firewall)
+    @compute.wait_global_operation(@options[:gce_project], operation.name)
+  end
+
+  ##
+  # Add a source_tag to an existing firewall
+  #
+  # @param [String] the name of the firewall to update
+  #
+  # @param [String] tag The source tag to add to the firewall
+  #
+  # @return [Google::Apis::ComputeV1::Operation]
+  #
+  # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
+  # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
+  # @raise [Google::Apis::AuthorizationError] Authorization is required
+  def add_firewall_source_tag(name, tag)
+    firewall = @compute.get_firewall(@options[:gce_project], name)
+    firewall.source_tags = [] if firewall.source_tags.nil?
+    firewall.source_tags << tag
     operation = @compute.patch_firewall(@options[:gce_project], name, firewall)
     @compute.wait_global_operation(@options[:gce_project], operation.name)
   end
@@ -429,6 +553,26 @@ class Beaker::GoogleComputeHelper
   # @raise [Google::Apis::AuthorizationError] Authorization is required
   def get_instance(name)
     @compute.get_instance(@options[:gce_project], @options[:gce_zone], name)
+  end
+
+  ##
+  # Add a tag to a Google Compute Instance
+  #
+  # @param [String] name The name of the instance
+  #
+  # @param [String] tag The tag to add to the instance
+  #
+  # @return [Google::Apis::ComputeV1::Operation]
+  #
+  # @raise [Google::Apis::ServerError] An error occurred on the server and the request can be retried
+  # @raise [Google::Apis::ClientError] The request is invalid and should not be retried without modification
+  # @raise [Google::Apis::AuthorizationError] Authorization is required
+  def add_instance_tag(name, tag)
+    instance = get_instance(name)
+    tags = instance.tags
+    tags.items << tag
+    operation = @compute.set_instance_tags(@options[:gce_project], @options[:gce_zone], name, tags)
+    @compute.wait_zone_operation(@options[:gce_project], @options[:gce_zone], operation.name)
   end
 
   ##
