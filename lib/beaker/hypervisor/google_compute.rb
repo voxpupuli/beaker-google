@@ -84,7 +84,7 @@ module Beaker
     # Create and configure virtual machines in the Google Compute Engine,
     # including their associated disks and firewall rules
     def provision
-      test_group_identifier = "beaker-${SecureRandom.hex(4)}"
+      test_group_identifier = "beaker-#{SecureRandom.hex(4)}"
 
       # set firewall to open pe ports
       network = @gce_helper.get_network
