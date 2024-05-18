@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/voxpupuli/beaker-google/tree/1.1.0)
+
+[Full Changelog](https://github.com/voxpupuli/beaker-google/compare/1.0.0...1.1.0)
+
+**Implemented enhancements:**
+- Remove timestamp from VM and firewall name [\#46](https://github.com/voxpupuli/beaker-google/pull/46) ([jaevans](https://github.com/jaevans))
+
 ## [1.0.0](https://github.com/voxpupuli/beaker-google/tree/1.0.0) (2022-10-31)
 
 [Full Changelog](https://github.com/voxpupuli/beaker-google/compare/0.5.0...1.0.0)
