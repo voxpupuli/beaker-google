@@ -1,12 +1,9 @@
-require 'time'
+require 'securerandom'
 
 module Beaker
   # Beaker support for the Google Compute Engine.
   class GoogleCompute < Beaker::Hypervisor
     SLEEPWAIT = 5
-
-    # Hours before an instance is considered a zombie
-    ZOMBIE = 3
 
     # Do some reasonable sleuthing on the SSH public key for GCE
 
@@ -87,8 +84,7 @@ module Beaker
     # Create and configure virtual machines in the Google Compute Engine,
     # including their associated disks and firewall rules
     def provision
-      start = Time.now
-      test_group_identifier = "beaker-#{start.to_i}"
+      test_group_identifier = "beaker-#{SecureRandom.hex(4)}"
 
       # set firewall to open pe ports
       network = @gce_helper.get_network
@@ -97,7 +93,7 @@ module Beaker
 
       # Always allow ssh from anywhere as it's needed for Beaker to run
       @gce_helper.create_firewall(@external_firewall_name, network, allow: @options[:gce_ports] + ['22/tcp'], source_ranges: ['0.0.0.0/0'], target_tags: [test_group_identifier])
-    
+
       @logger.debug("Created External Google Compute firewall #{@external_firewall_name}")
 
       # Create a firewall that opens everything between all the hosts in this test group
@@ -105,7 +101,7 @@ module Beaker
       internal_ports = ['1-65535/tcp', '1-65535/udp', '-1/icmp']
       @gce_helper.create_firewall(@internal_firewall_name, network, allow: internal_ports, source_tags: [test_group_identifier], target_tags: [test_group_identifier])
       @logger.debug("Created test group Google Compute firewall #{@internal_firewall_name}")
-      
+
       @hosts.each do |host|
         machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
         raise "Must provide a machine type name in 'gce_machine_type'." if machine_type_name.nil?
@@ -194,7 +190,7 @@ module Beaker
             value: 'FALSE'
           },
         ]
-        
+
         # Check for google's default windows images and turn on ssh if found
         if image_project == "windows-cloud" || image_project == "windows-sql-cloud"
           # Turn on SSH on GCP's default windows images
