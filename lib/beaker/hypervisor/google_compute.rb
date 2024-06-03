@@ -1,9 +1,13 @@
+# frozen_string_literal: true
+
 require 'securerandom'
 
 module Beaker
   # Beaker support for the Google Compute Engine.
   class GoogleCompute < Beaker::Hypervisor
     SLEEPWAIT = 5
+
+    WINDOWS_IMAGE_PROJECT = %w[windows-cloud windows-sql-cloud].freeze
 
     # Do some reasonable sleuthing on the SSH public key for GCE
 
@@ -15,9 +19,12 @@ module Beaker
     # @raise [Error] if the private key can not be found
     def find_google_ssh_private_key
       private_keyfile = ENV.fetch('BEAKER_gce_ssh_public_key',
-        File.join(ENV.fetch('HOME', nil), '.ssh', 'google_compute_engine'))
-      private_keyfile = @options[:gce_ssh_private_key] if @options[:gce_ssh_private_key] && !File.exist?(private_keyfile)
+                                  File.join(Dir.home, '.ssh', 'google_compute_engine'))
+      if @options[:gce_ssh_private_key] && !File.exist?(private_keyfile)
+        private_keyfile = @options[:gce_ssh_private_key]
+      end
       raise("Could not find GCE Private SSH key at '#{keyfile}'") unless File.exist?(private_keyfile)
+
       @options[:gce_ssh_private_key] = private_keyfile
       private_keyfile
     end
@@ -33,6 +40,7 @@ module Beaker
       public_keyfile = private_keyfile << '.pub'
       public_keyfile = @options[:gce_ssh_public_key] if @options[:gce_ssh_public_key] && !File.exist?(public_keyfile)
       raise("Could not find GCE Public SSH key at '#{keyfile}'") unless File.exist?(public_keyfile)
+
       @options[:gce_ssh_public_key] = public_keyfile
       public_keyfile
     end
@@ -89,25 +97,40 @@ module Beaker
       # set firewall to open pe ports
       network = @gce_helper.get_network
 
-      @external_firewall_name = test_group_identifier + '-external'
+      @external_firewall_name = "#{test_group_identifier}-external"
 
       # Always allow ssh from anywhere as it's needed for Beaker to run
-      @gce_helper.create_firewall(@external_firewall_name, network, allow: @options[:gce_ports] + ['22/tcp'], source_ranges: ['0.0.0.0/0'], target_tags: [test_group_identifier])
+      @gce_helper.create_firewall(
+        @external_firewall_name,
+        network,
+        allow: @options[:gce_ports] + ['22/tcp'],
+        source_ranges: ['0.0.0.0/0'],
+        target_tags: [test_group_identifier],
+      )
 
       @logger.debug("Created External Google Compute firewall #{@external_firewall_name}")
 
       # Create a firewall that opens everything between all the hosts in this test group
-      @internal_firewall_name = test_group_identifier + '-internal'
+      @internal_firewall_name = "#{test_group_identifier}-internal"
       internal_ports = ['1-65535/tcp', '1-65535/udp', '-1/icmp']
-      @gce_helper.create_firewall(@internal_firewall_name, network, allow: internal_ports, source_tags: [test_group_identifier], target_tags: [test_group_identifier])
+      @gce_helper.create_firewall(
+        @internal_firewall_name,
+        network,
+        allow: internal_ports,
+        source_tags: [test_group_identifier],
+        target_tags: [test_group_identifier],
+      )
       @logger.debug("Created test group Google Compute firewall #{@internal_firewall_name}")
 
       @hosts.each do |host|
         machine_type_name = ENV.fetch('BEAKER_gce_machine_type', host['gce_machine_type'])
         raise "Must provide a machine type name in 'gce_machine_type'." if machine_type_name.nil?
+
         # Get the GCE machine type object for this host
         machine_type = @gce_helper.get_machine_type(machine_type_name)
-        raise "Unable to find machine type named #{machine_type_name} in region #{@compute.default_zone}" if machine_type.nil?
+        if machine_type.nil?
+          raise "Unable to find machine type named #{machine_type_name} in region #{@compute.default_zone}"
+        end
 
         # Find the image to use to create the new VM.
         # Either `image` or `family` must be set in the configuration. Accepted formats
@@ -122,7 +145,7 @@ module Beaker
         if host[:image]
           image_selector = host[:image]
           # Do we have a project name?
-          if %r{/}.match?(image_selector)
+          if image_selector.include?('/')
             image_project, image_name = image_selector.split('/')[0..1]
           else
             image_project = @gce_helper.options[:gce_project]
@@ -133,7 +156,7 @@ module Beaker
         elsif host[:family]
           image_selector = host[:family]
           # Do we have a project name?
-          if %r{/}.match?(image_selector)
+          if image_selector.include?('/')
             image_project, family_name = image_selector.split('/')
           else
             image_project = @gce_helper.options[:gce_project]
@@ -145,7 +168,7 @@ module Beaker
           raise('You must specify either :image or :family')
         end
 
-        unique_host_id = test_group_identifier + '-' + generate_host_name
+        unique_host_id = "#{test_group_identifier}-#{generate_host_name}"
 
         boot_size = host['volume_size'] || img.disk_size_gb
 
@@ -160,8 +183,15 @@ module Beaker
         # add a new instance of the image
         operation = @gce_helper.create_instance(host['vmhostname'], img, machine_type, boot_size, host.name)
         unless operation.error.nil?
-          raise "Unable to create Google Compute Instance #{host.name}: [#{operation.error.errors[0].code}] #{operation.error.errors[0].message}"
+          raise "Unable to create Google Compute Instance #{
+            host.name
+          }: [#{
+            operation.error.errors[0].code
+          }] #{
+            operation.error.errors[0].message
+          }"
         end
+
         @logger.debug("Created Google Compute instance for #{host.name}: #{host['vmhostname']}")
         instance = @gce_helper.get_instance(host['vmhostname'])
 
@@ -169,11 +199,11 @@ module Beaker
         @logger.debug("Added network tag #{test_group_identifier} to instance")
 
         # Make sure we have a non root/Adminsitor user to log in as
-        if host['user'] == "root" || host['user'] == "Administrator" || host['user'].empty?
-          initial_user = 'google_compute'
-        else
-          initial_user = host['user']
-        end
+        initial_user = if host['user'] == 'root' || host['user'] == 'Administrator' || host['user'].empty?
+                         'google_compute'
+                       else
+                         host['user']
+                       end
 
         # add metadata to instance, if there is any to set
         # mdata = format_metadata
@@ -181,18 +211,18 @@ module Beaker
         mdata = [
           {
             key: 'ssh-keys',
-            value: "#{initial_user}:#{File.read(find_google_ssh_public_key).strip}"
+            value: "#{initial_user}:#{File.read(find_google_ssh_public_key).strip}",
           },
           # For now oslogin needs to be disabled as there's no way to log in as root and it would
           # take too much work on beaker to add sudo support to everything
           {
             key: 'enable-oslogin',
-            value: 'FALSE'
+            value: 'FALSE',
           },
         ]
 
         # Check for google's default windows images and turn on ssh if found
-        if image_project == "windows-cloud" || image_project == "windows-sql-cloud"
+        if WINDOWS_IMAGE_PROJECT.include?(image_project)
           # Turn on SSH on GCP's default windows images
           mdata << {
             key: 'enable-windows-ssh',
@@ -200,12 +230,12 @@ module Beaker
           }
           mdata << {
             key: 'sysprep-specialize-script-cmd',
-            value: 'start /wait googet -noconfirm=true update && start /wait googet -noconfirm=true install google-compute-engine-ssh',
+            value: 'start /wait googet -noconfirm=true update && start /wait googet -noconfirm=true install google-compute-engine-ssh', # rubocop:disable Layout/LineLength
           }
           # Some versions of windows don't seem to add the OpenSSH directory to the path which prevents scp from working
           mdata << {
             key: 'sysprep-specialize-script-ps1',
-            value: '[Environment]::SetEnvironmentVariable( "PATH", "$ENV:PATH;C:\Program Files\OpenSSH", [EnvironmentVariableTarget]::Machine )',
+            value: '[Environment]::SetEnvironmentVariable( "PATH", "$ENV:PATH;C:\Program Files\OpenSSH", [EnvironmentVariableTarget]::Machine )', # rubocop:disable Layout/LineLength
           }
         end
         unless mdata.empty?

@@ -7,18 +7,17 @@ env:
   BUNDLE_WITHOUT: release
 
 jobs:
-  # rubocop is currently not included in Gemfile
-  # rubocop:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install Ruby 3.1
-  #       uses: ruby/setup-ruby@v1
-  #       with:
-  #         ruby-version: "3.1"
-  #         bundler-cache: true
-  #     - name: Run rubocop
-  #       run: bundle exec rake rubocop
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: Run rubocop
+        run: bundle exec rake rubocop
   test:
     runs-on: ubuntu-latest
     strategy:

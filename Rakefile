@@ -1,4 +1,12 @@
+# frozen_string_literal: true
+
 require 'rspec/core/rake_task'
+
+begin
+  require 'voxpupuli/rubocop/rake'
+rescue LoadError
+  # the voxpupuli-rubocop gem is optional
+end
 
 ###########################################################
 #
@@ -13,12 +21,12 @@ def running?(cmdline)
   found = ps.lines.grep(/#{Regexp.quote(cmdline)}/)
   raise StandardError, "Found multiple YARD Servers. Don't know what to do." if found.length > 1
 
-  yes = found.empty? ? false : true
+  yes = !found.empty?
   [yes, found.first]
 end
 
 def pid_from(output)
-  output.squeeze(' ').strip.split(' ')[1]
+  output.squeeze(' ').strip.split[1]
 end
 
 desc 'Start the documentation server in the foreground'
@@ -44,7 +52,7 @@ namespace :docs do
     Dir.chdir(__dir__)
     output = `bundle exec yard doc`
     puts output
-    raise 'Errors/Warnings during yard documentation generation' if output =~ /\[warn\]|\[error\]/
+    raise 'Errors/Warnings during yard documentation generation' if /\[warn\]|\[error\]/.match?(output)
 
     Dir.chdir(original_dir)
   end
@@ -63,6 +71,7 @@ namespace :docs do
     end
   end
 
+  desc 'Alias for `background`'
   task(:bg) { Rake::Task['docs:background'].invoke }
 
   desc 'Check the status of the documentation server'
@@ -84,10 +93,10 @@ namespace :docs do
       puts "Found a YARD Server running with pid #{pid}"
       `kill #{pid}`
       puts 'Stopping...'
-      yes, output = running?(DOCS_DAEMON)
+      yes, = running?(DOCS_DAEMON)
       if yes
         `kill -9 #{pid}`
-        yes, output = running?(DOCS_DAEMON)
+        yes, = running?(DOCS_DAEMON)
         if yes
           puts 'Could not Stop Server!'
         else
@@ -106,9 +115,10 @@ begin
   require 'rubygems'
   require 'github_changelog_generator/task'
 rescue LoadError
+  # the github_changelog_generator gem is optional
 else
   GitHubChangelogGenerator::RakeTask.new :changelog do |config|
-    config.exclude_labels = %w{duplicate question invalid wontfix wont-fix skip-changelog}
+    config.exclude_labels = %w[duplicate question invalid wontfix wont-fix skip-changelog]
     config.user = 'voxpupuli'
     config.project = 'beaker-google'
     gem_version = Gem::Specification.load("#{config.project}.gemspec").version
