@@ -535,7 +535,7 @@ class Beaker::GoogleComputeHelper
       instance_opts[:hostname] = valid_hostname
     end
     
-    new_instance = ::Google::Apis::ComputeV1::Instance.new(instance_opts)
+    new_instance = ::Google::Apis::ComputeV1::Instance.new(**instance_opts)
 
     operation = @compute.insert_instance(@options[:gce_project], @options[:gce_zone], new_instance)
     @compute.wait_zone_operation(@options[:gce_project], @options[:gce_zone], operation.name)
