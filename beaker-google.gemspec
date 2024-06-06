@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/voxpupuli/beaker-google'
   s.summary     = 'Beaker DSL Extension Helpers!'
   s.description = 'Google Compute Engine support for the Beaker acceptance testing tool.'
-  s.license     = 'Apache2'
+  s.license     = 'Apache-2.0'
 
   s.files         = `git ls-files`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }
