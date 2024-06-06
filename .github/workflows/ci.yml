@@ -43,3 +43,12 @@ jobs:
       # Currently no tests are defined in this gem
       # - name: Run spec tests
       #   run: bundle exec rake
+
+  tests:
+    needs:
+      - rubocop
+      - test
+    runs-on: ubuntu-latest
+    name: Test suite
+    steps:
+      - run: echo Test suite completed
