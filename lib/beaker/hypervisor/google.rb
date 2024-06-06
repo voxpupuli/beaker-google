@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 require 'beaker/hypervisor/google_compute'
 
-class Beaker::Google < Beaker::GoogleCompute
+module Beaker
+  class Google < Beaker::GoogleCompute
+  end
 end
