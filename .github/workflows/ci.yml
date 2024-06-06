@@ -39,7 +39,7 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Verify gem builds
-        run: gem build *.gemspec
+        run: gem build --strict --verbose *.gemspec
       # Currently no tests are defined in this gem
       # - name: Run spec tests
       #   run: bundle exec rake
