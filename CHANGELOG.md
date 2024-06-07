@@ -1,6 +1,23 @@
 # Changelog
 
-## [1.1.0](https://github.com/voxpupuli/beaker-google/tree/1.1.0) (2024-05-21)
+## [1.2.0](https://github.com/voxpupuli/beaker-google/tree/1.2.0) (2024-06-07)
+
+[Full Changelog](https://github.com/voxpupuli/beaker-google/compare/1.1.0...1.2.0)
+
+**Implemented enhancements:**
+
+- CI: Run on Ruby 3.2 and 3.3 as well [\#52](https://github.com/voxpupuli/beaker-google/pull/52) ([bastelfreak](https://github.com/bastelfreak))
+
+**Fixed bugs:**
+
+- Fix call to Google::Apis::ComputeV1::Instance.new\(\) to work on Ruby 3 [\#51](https://github.com/voxpupuli/beaker-google/pull/51) ([silug](https://github.com/silug))
+
+**Merged pull requests:**
+
+- CI: build gem with --strict & --verbose [\#53](https://github.com/voxpupuli/beaker-google/pull/53) ([bastelfreak](https://github.com/bastelfreak))
+- Cleanup for rubocop [\#50](https://github.com/voxpupuli/beaker-google/pull/50) ([silug](https://github.com/silug))
+
+## [1.1.0](https://github.com/voxpupuli/beaker-google/tree/1.1.0) (2024-05-22)
 
 [Full Changelog](https://github.com/voxpupuli/beaker-google/compare/1.0.0...1.1.0)
 
