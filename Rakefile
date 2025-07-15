@@ -8,6 +8,13 @@ rescue LoadError
   # the voxpupuli-rubocop gem is optional
 end
 
+RSpec::Core::RakeTask.new(:spec) do |spec|
+  spec.pattern = FileList['spec/**/*_spec.rb']
+end
+
+# Also make spec part of the default task
+task default: [:spec]
+
 ###########################################################
 #
 #   Documentation Tasks

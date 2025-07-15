@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Ruby 3.3
+      - name: Install Ruby 3.4
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "3.4"
           bundler-cache: true
       - name: Run rubocop
         run: bundle exec rake rubocop
@@ -27,9 +27,10 @@ jobs:
           - ruby: "2.7"
           - ruby: "3.0"
           - ruby: "3.1"
-            coverage: "yes"
           - ruby: "3.2"
           - ruby: "3.3"
+          - ruby: "3.4"
+            coverage: "yes"
     env:
       COVERAGE: ${{ matrix.coverage }}
     name: Ruby ${{ matrix.ruby }}
@@ -42,9 +43,8 @@ jobs:
           bundler-cache: true
       - name: Verify gem builds
         run: gem build --strict --verbose *.gemspec
-      # Currently no tests are defined in this gem
-      # - name: Run spec tests
-      #   run: bundle exec rake
+      - name: Run spec tests
+        run: bundle exec rake
 
   tests:
     needs:

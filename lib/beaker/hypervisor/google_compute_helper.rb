@@ -16,6 +16,8 @@ module Beaker
     class GoogleComputeError < StandardError
     end
 
+    attr_reader :options
+
     SLEEPWAIT = 5
 
     AUTH_URL = 'https://www.googleapis.com/auth/compute'
@@ -51,9 +53,11 @@ module Beaker
       @options[:gce_network] = ENV.fetch('BEAKER_gce_network', DEFAULT_NETWORK_NAME)
       @options[:gce_subnetwork] = ENV.fetch('BEAKER_gce_subnetwork', nil)
 
-      @configure_ports = ENV.fetch('BEAKER_gce_ports', '').strip
-      # Split the ports based on commas, removing any empty values
-      @options[:gce_ports] = @configure_ports.split(/\s*?,\s*/).reject(&:empty?)
+      # Handle gce_ports - use provided option or environment variable
+      unless @options[:gce_ports]
+        @configure_ports = ENV.fetch('BEAKER_gce_ports', '').strip
+        @options[:gce_ports] = @configure_ports.split(/\s*?,\s*/).reject(&:empty?)
+      end
 
       raise 'You must specify a gce_project for Google Compute Engine instances!' unless @options[:gce_project]
 

@@ -38,4 +38,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'google-apis-compute_v1', '~> 0.1'
   s.add_runtime_dependency 'google-apis-oslogin_v1', '~> 0.1'
   s.add_runtime_dependency 'googleauth', '~> 1.2'
+
+  s.add_runtime_dependency 'logger', '~> 1.4'
+  s.add_runtime_dependency 'ostruct', '~> 0.2'
 end
