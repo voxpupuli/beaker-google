@@ -18,12 +18,12 @@ module Beaker
     #
     # @raise [Error] if the private key can not be found
     def find_google_ssh_private_key
-      private_keyfile = ENV.fetch('BEAKER_gce_ssh_public_key',
+      private_keyfile = ENV.fetch('BEAKER_gce_ssh_private_key',
                                   File.join(Dir.home, '.ssh', 'google_compute_engine'))
       if @options[:gce_ssh_private_key] && !File.exist?(private_keyfile)
         private_keyfile = @options[:gce_ssh_private_key]
       end
-      raise("Could not find GCE Private SSH key at '#{keyfile}'") unless File.exist?(private_keyfile)
+      raise("Could not find GCE Private SSH key at '#{private_keyfile}'") unless File.exist?(private_keyfile)
 
       @options[:gce_ssh_private_key] = private_keyfile
       private_keyfile
@@ -37,9 +37,9 @@ module Beaker
     # @raise [Error] if the public key can not be found
     def find_google_ssh_public_key
       private_keyfile = find_google_ssh_private_key
-      public_keyfile = private_keyfile << '.pub'
+      public_keyfile = "#{private_keyfile}.pub"
       public_keyfile = @options[:gce_ssh_public_key] if @options[:gce_ssh_public_key] && !File.exist?(public_keyfile)
-      raise("Could not find GCE Public SSH key at '#{keyfile}'") unless File.exist?(public_keyfile)
+      raise("Could not find GCE Public SSH key at '#{public_keyfile}'") unless File.exist?(public_keyfile)
 
       @options[:gce_ssh_public_key] = public_keyfile
       public_keyfile
