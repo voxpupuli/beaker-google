@@ -336,7 +336,7 @@ module Beaker
       allowed = []
       allow.each do |port|
         parts = port.split('/', 2)
-        allowed << if parts[1] == 'tcp' || parts[1] == 'udp' || parts[1] == 'sctp'
+        allowed << if %w[tcp udp sctp].include?(parts[1])
                      ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: parts[1], ports: [parts[0]])
                    else
                      ::Google::Apis::ComputeV1::Firewall::Allowed.new(ip_protocol: parts[1])
@@ -345,7 +345,7 @@ module Beaker
       denied = []
       deny.each do |port|
         parts = port.split('/', 2)
-        denied << if parts[1] == 'tcp' || parts[1] == 'udp' || parts[1] == 'sctp'
+        denied << if %w[tcp udp sctp].include?(parts[1])
                     ::Google::Apis::ComputeV1::Firewall::Denied.new(ip_protocol: parts[1], ports: [parts[0]])
                   else
                     ::Google::Apis::ComputeV1::Firewall::Denied.new(ip_protocol: parts[1])
