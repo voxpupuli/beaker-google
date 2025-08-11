@@ -29,7 +29,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'voxpupuli-rubocop', '~> 3.1.0'
 
   # Documentation dependencies
-  s.add_development_dependency 'thin', '~> 1.8', '>= 1.8.2'
+  s.add_development_dependency 'thin', '>= 1.8.2', '< 3'
   s.add_development_dependency 'yard', '~> 0.9.36'
 
   # Run time dependencies
