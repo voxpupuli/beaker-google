@@ -131,6 +131,35 @@ RSpec.describe Beaker::GoogleComputeHelper do
           described_class.new(options)
         end.not_to raise_error
       end
+
+      def ports_for(env_value, configured)
+        allow(ENV).to receive(:fetch).with('BEAKER_gce_ports', '').and_return(env_value)
+        described_class.new(base_options.merge(gce_ports: configured)).options[:gce_ports]
+      end
+
+      it 'lets BEAKER_gce_ports replace configured gce_ports' do
+        expect(ports_for('8140/tcp, 443/tcp', ['80/tcp'])).to eq(['8140/tcp', '443/tcp'])
+      end
+
+      it 'uses BEAKER_gce_ports when gce_ports is not configured' do
+        expect(ports_for('8140/tcp', nil)).to eq(['8140/tcp'])
+      end
+
+      it 'keeps configured gce_ports when BEAKER_gce_ports is empty' do
+        expect(ports_for('', ['80/tcp'])).to eq(['80/tcp'])
+      end
+
+      it 'keeps configured gce_ports when BEAKER_gce_ports is only whitespace' do
+        expect(ports_for('   ', ['80/tcp'])).to eq(['80/tcp'])
+      end
+
+      it 'defaults to no ports when neither BEAKER_gce_ports nor gce_ports is set' do
+        expect(ports_for('', nil)).to eq([])
+      end
+
+      it 'validates ports taken from BEAKER_gce_ports' do
+        expect { ports_for('8140/bogus', ['80/tcp']) }.to raise_error(/Invalid value 'bogus' for protocol/)
+      end
     end
   end
 end
