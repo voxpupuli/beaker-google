@@ -160,6 +160,14 @@ RSpec.describe Beaker::GoogleComputeHelper do
       it 'validates ports taken from BEAKER_gce_ports' do
         expect { ports_for('8140/bogus', ['80/tcp']) }.to raise_error(/Invalid value 'bogus' for protocol/)
       end
+
+      it 'splits a comma-separated gce_ports string from the hosts file' do
+        expect(ports_for('', '80/tcp, 443/tcp')).to eq(['80/tcp', '443/tcp'])
+      end
+
+      it 'splits comma-separated entries inside a gce_ports list' do
+        expect(ports_for('', ['80/tcp,443/tcp', ' 8140/tcp '])).to eq(['80/tcp', '443/tcp', '8140/tcp'])
+      end
     end
   end
 end
