@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.2.0](https://github.com/voxpupuli/beaker-google/tree/1.2.0) (2026-11-03)
+
+[Full Changelog](https://github.com/voxpupuli/beaker-google/compare/1.2.0...1.2.0)
+
+**Fixed bugs:**
+
+- Let a non-empty BEAKER\_gce\_ports replace configured gce\_ports [\#74](https://github.com/voxpupuli/beaker-google/pull/74) ([jaevans](https://github.com/jaevans))
+
+**Closed issues:**
+
+- Compute calls fail with "Invalid API version '2026-11-01'" since google-apis-compute\_v1 0.157.0 [\#76](https://github.com/voxpupuli/beaker-google/issues/76)
+
+**Merged pull requests:**
+
+- Pin the Compute API version sent to Compute Engine [\#77](https://github.com/voxpupuli/beaker-google/pull/77) ([michael-riddle](https://github.com/michael-riddle))
+- Remove CodeQL workflow in favor of default setup [\#75](https://github.com/voxpupuli/beaker-google/pull/75) ([jaevans](https://github.com/jaevans))
+- Bump actions/checkout from 6 to 7 [\#71](https://github.com/voxpupuli/beaker-google/pull/71) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump rubygems/configure-rubygems-credentials from 1.0.0 to 2.1.0 [\#70](https://github.com/voxpupuli/beaker-google/pull/70) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/download-artifact from 7 to 8 [\#68](https://github.com/voxpupuli/beaker-google/pull/68) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 6 to 7 [\#67](https://github.com/voxpupuli/beaker-google/pull/67) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 5 to 6 [\#66](https://github.com/voxpupuli/beaker-google/pull/66) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/download-artifact from 6 to 7 [\#65](https://github.com/voxpupuli/beaker-google/pull/65) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 5 to 6 [\#64](https://github.com/voxpupuli/beaker-google/pull/64) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/upload-artifact from 4 to 5 [\#63](https://github.com/voxpupuli/beaker-google/pull/63) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/download-artifact from 5 to 6 [\#62](https://github.com/voxpupuli/beaker-google/pull/62) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github/codeql-action from 3 to 4 [\#61](https://github.com/voxpupuli/beaker-google/pull/61) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/checkout from 4 to 5 [\#60](https://github.com/voxpupuli/beaker-google/pull/60) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update thin requirement from ~\> 1.8, \>= 1.8.2 to \>= 1.8.2, \< 3 [\#59](https://github.com/voxpupuli/beaker-google/pull/59) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Add rspec tests [\#57](https://github.com/voxpupuli/beaker-google/pull/57) ([silug](https://github.com/silug))
+- Update voxpupuli-rubocop requirement from ~\> 2.8.0 to ~\> 3.1.0 [\#56](https://github.com/voxpupuli/beaker-google/pull/56) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update voxpupuli-rubocop requirement from ~\> 2.7.0 to ~\> 2.8.0 [\#55](https://github.com/voxpupuli/beaker-google/pull/55) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [1.2.0](https://github.com/voxpupuli/beaker-google/tree/1.2.0) (2024-06-07)
 
 [Full Changelog](https://github.com/voxpupuli/beaker-google/compare/1.1.0...1.2.0)
