@@ -73,6 +73,11 @@ module Beaker
       authorizer = authenticate
       @compute = ::Google::Apis::ComputeV1::ComputeService.new
       @compute.authorization = authorizer
+      # google-apis-compute_v1 sends a dated X-Goog-Api-Version header on every
+      # call, and a release can name a version Compute Engine doesn't accept yet
+      # (0.157.0 sends 2026-11-01, which is rejected). Request options are
+      # applied after that header, so pin the API version this helper targets.
+      @compute.request_options.header = { 'X-Goog-Api-Version' => API_VERSION }
 
       # Find the appropriate username to log into created instances
       @cloudoslogin = ::Google::Apis::OsloginV1::CloudOSLoginService.new

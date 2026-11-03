@@ -31,6 +31,7 @@ RSpec.describe Beaker::Google do
     # Mock the Google Compute and OS Login services
     compute_service = instance_double(Google::Apis::ComputeV1::ComputeService)
     allow(compute_service).to receive(:authorization=)
+    allow(compute_service).to receive(:request_options).and_return(Google::Apis::RequestOptions.new)
     allow(Google::Apis::ComputeV1::ComputeService).to receive(:new).and_return(compute_service)
 
     oslogin_service = instance_double(Google::Apis::OsloginV1::CloudOSLoginService)
