@@ -53,11 +53,12 @@ module Beaker
       @options[:gce_network] = ENV.fetch('BEAKER_gce_network', DEFAULT_NETWORK_NAME)
       @options[:gce_subnetwork] = ENV.fetch('BEAKER_gce_subnetwork', nil)
 
-      # Handle gce_ports - use provided option or environment variable
-      unless @options[:gce_ports]
-        @configure_ports = ENV.fetch('BEAKER_gce_ports', '').strip
-        @options[:gce_ports] = @configure_ports.split(/\s*?,\s*/).reject(&:empty?)
-      end
+      # A non-empty BEAKER_gce_ports replaces gce_ports from the hosts file, as
+      # BEAKER_gce_project and BEAKER_gce_machine_type replace theirs. Either
+      # source may be a comma-separated string or a list.
+      env_ports = ENV.fetch('BEAKER_gce_ports', '').strip
+      ports = env_ports.empty? ? @options[:gce_ports] : env_ports
+      @options[:gce_ports] = Array(ports).flat_map { |entry| entry.to_s.split(',') }.map(&:strip).reject(&:empty?)
 
       raise 'You must specify a gce_project for Google Compute Engine instances!' unless @options[:gce_project]
 
