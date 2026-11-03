@@ -14,6 +14,7 @@ RSpec.describe Beaker do
 
         compute_service = double
         allow(compute_service).to receive(:authorization=)
+        allow(compute_service).to receive(:request_options).and_return(Google::Apis::RequestOptions.new)
         allow(Google::Apis::ComputeV1::ComputeService).to receive(:new).and_return(compute_service)
 
         oslogin_service = double

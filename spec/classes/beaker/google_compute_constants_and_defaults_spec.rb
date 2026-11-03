@@ -20,6 +20,7 @@ RSpec.describe Beaker::GoogleCompute do
 
       compute_service = double
       allow(compute_service).to receive(:authorization=)
+      allow(compute_service).to receive(:request_options).and_return(Google::Apis::RequestOptions.new)
       allow(Google::Apis::ComputeV1::ComputeService).to receive(:new).and_return(compute_service)
 
       oslogin_service = double
@@ -129,6 +130,7 @@ RSpec.describe Beaker::GoogleCompute do
       allow(Google::Auth).to receive(:get_application_default).and_return(auth)
 
       allow(compute).to receive(:authorization=)
+      allow(compute).to receive(:request_options).and_return(Google::Apis::RequestOptions.new)
       allow(oslogin).to receive(:authorization=)
 
       allow(client_options).to receive(:application_name=)
